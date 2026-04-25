@@ -3,18 +3,20 @@
 
 # Homebrew formula for the Lexis search engine.
 #
-# Two install paths share this file (modern Homebrew refuses to install
-# a loose `.rb` path — formulae have to live inside a tap):
+# This file is the source of truth — the published tap at
+# `florentiu/homebrew-lexis` is a copy of `Formula/lexis.rb` from here.
+# End-user install:
 #
-#   1. Local dev / CI — drop into a one-off local tap:
-#        brew tap-new --no-git florentiu/lexis-local
-#        cp apps/lexis/homebrew/lexis.rb \
-#           "$(brew --repository florentiu/lexis-local)/Formula/lexis.rb"
-#        brew install --HEAD florentiu/lexis-local/lexis
+#   brew tap florentiu/lexis
+#   brew install lexis --HEAD
 #
-#   2. Published tap (after copying this file into a `homebrew-lexis`
-#      repo's `Formula/` directory):
-#        brew install florentiu/lexis/lexis --HEAD
+# To iterate on this file before pushing to the tap, drop it into a
+# one-off local tap (modern Homebrew refuses loose `.rb` paths):
+#
+#   brew tap-new --no-git florentiu/lexis-local
+#   cp apps/lexis/homebrew/lexis.rb \
+#      "$(brew --repository florentiu/lexis-local)/Formula/lexis.rb"
+#   brew install --HEAD florentiu/lexis-local/lexis
 #
 # The formula builds from source via `cargo`. There is no bottle yet —
 # add a `bottle do ... end` block once we wire a release pipeline that
@@ -47,6 +49,16 @@ class Lexis < Formula
     # `--package` flag) is the Homebrew-blessed way to build a workspace
     # member; the audit rule (FormulaAudit/Text) flags `cargo build` directly.
     system "cargo", "install", *std_cargo_args(path: "crates/lexis-cli")
+
+    # Pre-create the runtime data dir. Two reasons we have to do this in
+    # `install` rather than relying on the engine to mkdir at startup:
+    #   - launchd (`brew services`) refuses to spawn the process if the
+    #     plist's `WorkingDirectory` doesn't exist — exits with 78 before
+    #     the binary ever runs.
+    #   - The engine writes its index/license/state under `--data-dir`, so
+    #     having the parent ready avoids a race the first time the user
+    #     hits an admin endpoint.
+    (var/"lexis").mkpath
   end
 
   # Per-user launchd service. `brew services start lexis` writes the
