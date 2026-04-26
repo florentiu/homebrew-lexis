@@ -1,63 +1,89 @@
 # typed: strict
 # frozen_string_literal: true
 
-# Homebrew formula for the Lexis search engine.
+# Homebrew formula TEMPLATE for the Lexis search engine.
 #
 # This file is the source of truth — the published tap at
-# `florentiu/homebrew-lexis` is a copy of `Formula/lexis.rb` from here.
-# End-user install:
+# `florentiu/homebrew-lexis` is auto-updated by `.github/workflows/
+# release-lexis.yml` whenever a tag of the form `lexis-v*.*.*` is pushed.
+# The workflow substitutes five tokens below with the new version + the
+# four per-arch tarball sha256 hashes, then commits the result as
+# `Formula/lexis.rb` directly to the tap's `main` branch (no PR review
+# — engine releases must propagate fast so users get `brew upgrade`
+# access the moment a tag lands).
+#
+# Tokens (used verbatim below, sed-replaced by the workflow):
+#   0.2.0               — the engine version, e.g. 0.2.0
+#   f4dd5bd79787bee40d7850f6943394e59fc42ee95630aa027539b26e267143bd    — sha256 of the macOS arm64 tarball
+#   fe99ff344995b34ec95fb92e6a2195fa159c2f26d916cee69f49f4a7ea8fdff8     — sha256 of the macOS x86_64 tarball
+#   d06add63f18f338936be5a629ec46b257a72aea0ddee8251e07b303af9ffe91d     — sha256 of the Linux arm64 tarball
+#   d394caada0e0f1088f6d713b8f4e5cc29d4989bcab3d46f6dc91a754b8ef4304      — sha256 of the Linux x86_64 tarball
+#
+# End-user install (after first `lexis-v*` tag has been published):
 #
 #   brew tap florentiu/lexis
-#   brew install lexis --HEAD
+#   brew install lexis
+#   brew services start lexis
 #
-# To iterate on this file before pushing to the tap, drop it into a
-# one-off local tap (modern Homebrew refuses loose `.rb` paths):
-#
-#   brew tap-new --no-git florentiu/lexis-local
-#   cp apps/lexis/homebrew/lexis.rb \
-#      "$(brew --repository florentiu/lexis-local)/Formula/lexis.rb"
-#   brew install --HEAD florentiu/lexis-local/lexis
-#
-# The formula builds from source via `cargo`. There is no bottle yet —
-# add a `bottle do ... end` block once we wire a release pipeline that
-# publishes per-arch binaries to GitHub releases. Until then, install
-# takes a few minutes the first time (mostly Tantivy + RocksDB).
-
-# Lexis: embedded search engine — Tantivy index + admin/search HTTP API.
+# No Rust toolchain on the user's machine, no source build — Homebrew
+# just downloads the per-arch tarball matching the host and drops the
+# `lexis` binary into `prefix/bin/`. `brew upgrade lexis` picks up new
+# tags as the workflow re-stamps this file.
 class Lexis < Formula
   desc "Embedded search engine — Tantivy index + admin/search HTTP API"
   homepage "https://github.com/florentiu/lexis"
+  version "0.2.0"
   license :cannot_represent # source-available; see LICENSE
-  head "https://github.com/florentiu/lexis.git", branch: "main"
 
-  # Once a tagged release exists, drop the `head_only` constraint by
-  # adding a stable `url` + `sha256` block here, e.g.
+  # Per-arch binaries published as GitHub Release assets on the same
+  # `lexis-v0.2.0` tag that built them. Keeping URL + sha256 inside
+  # the matching `on_macos`/`on_linux` blocks lets a single formula
+  # serve every supported (os, arch) combination — Homebrew picks the
+  # right block based on `Hardware::CPU.arch` at install time.
   #
-  #   url "https://github.com/florentiu/lexis/archive/refs/tags/v0.1.0.tar.gz"
-  #   sha256 "<sha256 of the tarball>"
-  #
-  # Until then, only `brew install --HEAD lexis` is supported.
+  # Tarball convention: `lexis-{version}-{rust-target-triple}.tar.gz`,
+  # gzipped tarball containing a single bare binary at `./lexis` (no
+  # nested top-level directory). `bin.install "lexis"` below relies on
+  # exactly that layout — keep it stable across releases.
+  on_macos do
+    on_arm do
+      url "https://github.com/florentiu/lexis/releases/download/lexis-v0.2.0/lexis-0.2.0-aarch64-apple-darwin.tar.gz"
+      sha256 "f4dd5bd79787bee40d7850f6943394e59fc42ee95630aa027539b26e267143bd"
+    end
+    on_intel do
+      url "https://github.com/florentiu/lexis/releases/download/lexis-v0.2.0/lexis-0.2.0-x86_64-apple-darwin.tar.gz"
+      sha256 "fe99ff344995b34ec95fb92e6a2195fa159c2f26d916cee69f49f4a7ea8fdff8"
+    end
+  end
 
-  depends_on "rust" => :build
+  on_linux do
+    on_arm do
+      url "https://github.com/florentiu/lexis/releases/download/lexis-v0.2.0/lexis-0.2.0-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "d06add63f18f338936be5a629ec46b257a72aea0ddee8251e07b303af9ffe91d"
+    end
+    on_intel do
+      url "https://github.com/florentiu/lexis/releases/download/lexis-v0.2.0/lexis-0.2.0-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "d394caada0e0f1088f6d713b8f4e5cc29d4989bcab3d46f6dc91a754b8ef4304"
+    end
+  end
 
   uses_from_macos "curl" => :test
 
   def install
-    # `cargo install` against the workspace member's manifest. `std_cargo_args`
-    # expands to `--locked --root <prefix> --path <path>` so the binary lands
-    # in `prefix/bin/lexis` automatically. Pointing at the crate path (not a
-    # `--package` flag) is the Homebrew-blessed way to build a workspace
-    # member; the audit rule (FormulaAudit/Text) flags `cargo build` directly.
-    system "cargo", "install", *std_cargo_args(path: "crates/lexis-cli")
+    # Tarball lays the binary down at the archive root, no nested
+    # directory — `bin.install` copies it into `prefix/bin/lexis` and
+    # marks it executable.
+    bin.install "lexis"
 
-    # Pre-create the runtime data dir. Two reasons we have to do this in
-    # `install` rather than relying on the engine to mkdir at startup:
-    #   - launchd (`brew services`) refuses to spawn the process if the
-    #     plist's `WorkingDirectory` doesn't exist — exits with 78 before
-    #     the binary ever runs.
-    #   - The engine writes its index/license/state under `--data-dir`, so
-    #     having the parent ready avoids a race the first time the user
-    #     hits an admin endpoint.
+    # Pre-create the runtime data dir. Two reasons we have to do this
+    # at install time rather than relying on the engine to mkdir at
+    # startup:
+    #   - launchd (`brew services`) refuses to spawn the process if
+    #     the plist's `WorkingDirectory` doesn't exist — exits with 78
+    #     before the binary ever runs.
+    #   - The engine writes its index/license/state under `--data-dir`,
+    #     so having the parent ready avoids a race the first time the
+    #     user hits an admin endpoint.
     (var/"lexis").mkpath
   end
 
@@ -92,8 +118,9 @@ class Lexis < Formula
         Data directory   #{var}/lexis
         Log file         #{var}/log/lexis.log
 
-      The admin API is unauthenticated — keep the listener on 127.0.0.1
-      unless you put a reverse-proxy with auth in front of it.
+      The engine's management routes are unauthenticated — keep the
+      listener on 127.0.0.1 unless you put a reverse-proxy with auth in
+      front of it.
 
       Pair with Lexis Web (the dashboard):
         - Docker dashboard → connection URL: http://host.docker.internal:5391
@@ -105,7 +132,8 @@ class Lexis < Formula
   end
 
   test do
-    # Version smoke test — fails fast if the binary is broken.
+    # Version smoke test — fails fast if the binary is broken or the
+    # workflow stamped the wrong `version` token.
     assert_match version.to_s, shell_output("#{bin}/lexis --version")
 
     # End-to-end: spin the server up against an empty data dir, hit
