@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+require "json"
+
 # Homebrew formula TEMPLATE for the Lexis search engine.
 #
 # This file is the source of truth — the published tap at
@@ -21,11 +23,11 @@
 # below points at `lexis-releases`, not `lexis`.
 #
 # Tokens (used verbatim below, sed-replaced by the workflow):
-#   0.2.2               — the engine version, e.g. 0.2.0
-#   6487243f4de17c264b322e443c5dbd48e72de6ea5f640a8a3964566030a02668    — sha256 of the macOS arm64 tarball
-#   de26da8acd2472f263f586fc439e3fae9861a4c6d9d1e16ac65f984e27bbe37b     — sha256 of the macOS x86_64 tarball
-#   99f0171ad5ce8757eac85303bdf3dc39ba7a233a98287ccd74deba6ca332fac1     — sha256 of the Linux arm64 tarball
-#   d5486a56d26ffd0c1451f7ed18229769467b8c3f4354f222f8045bf0143ad4db      — sha256 of the Linux x86_64 tarball
+#   0.3.0               — the engine version, e.g. 0.2.0
+#   fbf6d65f494a62561a74099cf6c06dce7ef6f60079ce8f9a75ff91b811eccaec    — sha256 of the macOS arm64 tarball
+#   e7c23b7a5d52dfa47b2fe568f7177e355ab079687484ac0188efbf15ad22eff4     — sha256 of the macOS x86_64 tarball
+#   7e9abc601a4988d26d323771264eb04f6b05b4eb59d96776c030f2764591be69     — sha256 of the Linux arm64 tarball
+#   eb6014e01f22e02e63b3de3d13b739a315b3b0d771bcbda210886e9376143dc1      — sha256 of the Linux x86_64 tarball
 #
 # End-user install (after first `lexis-v*` tag has been published):
 #
@@ -44,11 +46,11 @@ class Lexis < Formula
   # opens (the formula's `homepage` URL has to resolve or `brew
   # audit` flags it on tap CI).
   homepage "https://github.com/florentiu/lexis-releases"
-  version "0.2.2"
+  version "0.3.0"
   license :cannot_represent # source-available; see LICENSE
 
   # Per-arch binaries published as GitHub Release assets on the same
-  # `lexis-v0.2.2` tag that built them. Keeping URL + sha256 inside
+  # `lexis-v0.3.0` tag that built them. Keeping URL + sha256 inside
   # the matching `on_macos`/`on_linux` blocks lets a single formula
   # serve every supported (os, arch) combination — Homebrew picks the
   # right block based on `Hardware::CPU.arch` at install time.
@@ -59,23 +61,23 @@ class Lexis < Formula
   # exactly that layout — keep it stable across releases.
   on_macos do
     on_arm do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.2.2/lexis-0.2.2-aarch64-apple-darwin.tar.gz"
-      sha256 "6487243f4de17c264b322e443c5dbd48e72de6ea5f640a8a3964566030a02668"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.3.0/lexis-0.3.0-aarch64-apple-darwin.tar.gz"
+      sha256 "fbf6d65f494a62561a74099cf6c06dce7ef6f60079ce8f9a75ff91b811eccaec"
     end
     on_intel do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.2.2/lexis-0.2.2-x86_64-apple-darwin.tar.gz"
-      sha256 "de26da8acd2472f263f586fc439e3fae9861a4c6d9d1e16ac65f984e27bbe37b"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.3.0/lexis-0.3.0-x86_64-apple-darwin.tar.gz"
+      sha256 "e7c23b7a5d52dfa47b2fe568f7177e355ab079687484ac0188efbf15ad22eff4"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.2.2/lexis-0.2.2-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "99f0171ad5ce8757eac85303bdf3dc39ba7a233a98287ccd74deba6ca332fac1"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.3.0/lexis-0.3.0-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "7e9abc601a4988d26d323771264eb04f6b05b4eb59d96776c030f2764591be69"
     end
     on_intel do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.2.2/lexis-0.2.2-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "d5486a56d26ffd0c1451f7ed18229769467b8c3f4354f222f8045bf0143ad4db"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.3.0/lexis-0.3.0-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "eb6014e01f22e02e63b3de3d13b739a315b3b0d771bcbda210886e9376143dc1"
     end
   end
 
@@ -97,6 +99,79 @@ class Lexis < Formula
     #     so having the parent ready avoids a race the first time the
     #     user hits an admin endpoint.
     (var/"lexis").mkpath
+  end
+
+  # `post_install` runs on every `brew install lexis` AND every `brew
+  # upgrade lexis`. We use it to auto-restart a daemon spawned by `lexis
+  # serve --detach` (or by the `lexis init` wizard, which detaches the
+  # same way) so an upgrade picks up the new binary instead of leaving
+  # the previous version running in memory.
+  #
+  # Why this is needed: on Linux/macOS the kernel pins the in-memory
+  # ELF/Mach-O mapping of a running process, so even after Homebrew
+  # replaces `bin/lexis` with the new tarball, the in-flight engine
+  # keeps executing the OLD code until something restarts it. Without
+  # this hook, an operator who runs
+  #
+  #   lexis serve --detach --addr 0.0.0.0:5391    # on 0.2.2
+  #   brew upgrade lexis                          # tarball drops 0.3.0
+  #   lexis info                                  # still reports 0.2.2 — confusing
+  #
+  # would have to remember to `lexis stop && lexis serve --detach …`
+  # by hand. Doing it here makes the upgrade transparent.
+  #
+  # Discovery contract: `lexis serve --detach` writes
+  # `~/.lexis/serve.cmd` (a small JSON snapshot of `version`, `addr`,
+  # `data_dir`) at spawn time, and `lexis stop` deletes it on a clean
+  # stop. So the file's presence is the authoritative "there is a
+  # detached daemon to restart" signal — present means restart, missing
+  # means do nothing.
+  #
+  # Out of scope on purpose:
+  #   - `brew services` users — launchd already restarts the daemon on
+  #     binary change as part of `brew services restart`, and we don't
+  #     want to double-spawn into a port collision. The cmd file isn't
+  #     written by the launchd path so we naturally skip them.
+  #   - systemd / nohup users — they manage the lifecycle out-of-band;
+  #     the cmd file isn't written for those, so we leave them alone.
+  #     The caveats section calls out the manual restart they need.
+  #   - First-install case — no prior daemon to restart; the cmd file
+  #     can't exist yet, so this block is a no-op on a fresh install.
+  def post_install
+    # Resolve `~/.lexis/` against the *invoking* user's home — Homebrew
+    # runs `post_install` as the regular user (not root), so `Dir.home`
+    # is correct. The state lives per-user, not under `var`, so we have
+    # to leave the brew-managed prefix to find it.
+    cmd_file = File.join(Dir.home, ".lexis", "serve.cmd")
+    return unless File.exist?(cmd_file)
+
+    cmd = begin
+      JSON.parse(File.read(cmd_file))
+    rescue JSON::ParserError, Errno::EACCES => e
+      opoo "lexis: ~/.lexis/serve.cmd unreadable (#{e.message}); skipping daemon restart"
+      return
+    end
+
+    addr = cmd["addr"].to_s
+    if addr.empty?
+      opoo "lexis: ~/.lexis/serve.cmd has no `addr` field; skipping daemon restart"
+      return
+    end
+
+    # Stop the old engine, then spawn a new one. Both calls go through
+    # the freshly-installed binary at `bin/"lexis"`, so the second call
+    # writes a new `serve.cmd` stamped with the new version. We use
+    # `system` (array form) — no shell, no injection surface — and
+    # don't error-out on a non-zero exit: `lexis stop` returns 0 when
+    # nothing is running ("nothing to stop"), and we want a missing
+    # daemon to be a no-op rather than abort the upgrade.
+    ohai "lexis: restarting detached engine on #{addr} with the new binary"
+    system bin/"lexis", "stop"
+    if system bin/"lexis", "serve", "--detach", "--addr", addr
+      ohai "lexis: engine re-spawned on #{addr}"
+    else
+      opoo "lexis: failed to re-spawn engine on #{addr} — start it manually with: lexis serve --detach --addr #{addr}"
+    end
   end
 
   # Per-user launchd service. `brew services start lexis` writes the
@@ -140,6 +215,19 @@ class Lexis < Formula
 
       One-shot foreground run (handy for debugging):
         lexis --data-dir #{var}/lexis serve --addr 127.0.0.1:5391
+
+      Background-mode lifecycle (`lexis init` / `lexis serve --detach`):
+        Daemons spawned via the wizard or `--detach` write their state
+        to ~/.lexis/serve.cmd. `brew upgrade lexis` reads that file and
+        automatically restarts the engine on the new binary, so an
+        upgrade is transparent.
+
+        If you manage the engine through systemd, nohup, or a custom
+        init script, that file isn't written and `brew upgrade` will
+        leave your engine running on the old version. Restart it
+        yourself after the upgrade:
+          systemctl --user restart lexis    # systemd unit
+          # or stop and re-spawn under your own supervisor
     EOS
   end
 
