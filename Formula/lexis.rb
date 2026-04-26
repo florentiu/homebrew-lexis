@@ -23,11 +23,11 @@ require "json"
 # below points at `lexis-releases`, not `lexis`.
 #
 # Tokens (used verbatim below, sed-replaced by the workflow):
-#   0.3.0               — the engine version, e.g. 0.2.0
-#   fbf6d65f494a62561a74099cf6c06dce7ef6f60079ce8f9a75ff91b811eccaec    — sha256 of the macOS arm64 tarball
-#   e7c23b7a5d52dfa47b2fe568f7177e355ab079687484ac0188efbf15ad22eff4     — sha256 of the macOS x86_64 tarball
-#   7e9abc601a4988d26d323771264eb04f6b05b4eb59d96776c030f2764591be69     — sha256 of the Linux arm64 tarball
-#   eb6014e01f22e02e63b3de3d13b739a315b3b0d771bcbda210886e9376143dc1      — sha256 of the Linux x86_64 tarball
+#   0.4.0               — the engine version, e.g. 0.2.0
+#   5da734f492426753a7df8f34c6210411a62fb69de1985791ab9803c546da5894    — sha256 of the macOS arm64 tarball
+#   61c513a20e8830fb0e4e29c96be77975c288e649b91a438b0548c8587ecb05c6     — sha256 of the macOS x86_64 tarball
+#   faccc72cbb51830345e883740ffd51bfcd8ddd99254a8793e01511b8fed5c05a     — sha256 of the Linux arm64 tarball
+#   a0a1bcabe4c476c87c8c89e4b968f4f051d85622e4c2584c383e27238516829e      — sha256 of the Linux x86_64 tarball
 #
 # End-user install (after first `lexis-v*` tag has been published):
 #
@@ -46,11 +46,11 @@ class Lexis < Formula
   # opens (the formula's `homepage` URL has to resolve or `brew
   # audit` flags it on tap CI).
   homepage "https://github.com/florentiu/lexis-releases"
-  version "0.3.0"
+  version "0.4.0"
   license :cannot_represent # source-available; see LICENSE
 
   # Per-arch binaries published as GitHub Release assets on the same
-  # `lexis-v0.3.0` tag that built them. Keeping URL + sha256 inside
+  # `lexis-v0.4.0` tag that built them. Keeping URL + sha256 inside
   # the matching `on_macos`/`on_linux` blocks lets a single formula
   # serve every supported (os, arch) combination — Homebrew picks the
   # right block based on `Hardware::CPU.arch` at install time.
@@ -61,23 +61,23 @@ class Lexis < Formula
   # exactly that layout — keep it stable across releases.
   on_macos do
     on_arm do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.3.0/lexis-0.3.0-aarch64-apple-darwin.tar.gz"
-      sha256 "fbf6d65f494a62561a74099cf6c06dce7ef6f60079ce8f9a75ff91b811eccaec"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.0/lexis-0.4.0-aarch64-apple-darwin.tar.gz"
+      sha256 "5da734f492426753a7df8f34c6210411a62fb69de1985791ab9803c546da5894"
     end
     on_intel do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.3.0/lexis-0.3.0-x86_64-apple-darwin.tar.gz"
-      sha256 "e7c23b7a5d52dfa47b2fe568f7177e355ab079687484ac0188efbf15ad22eff4"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.0/lexis-0.4.0-x86_64-apple-darwin.tar.gz"
+      sha256 "61c513a20e8830fb0e4e29c96be77975c288e649b91a438b0548c8587ecb05c6"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.3.0/lexis-0.3.0-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "7e9abc601a4988d26d323771264eb04f6b05b4eb59d96776c030f2764591be69"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.0/lexis-0.4.0-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "faccc72cbb51830345e883740ffd51bfcd8ddd99254a8793e01511b8fed5c05a"
     end
     on_intel do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.3.0/lexis-0.3.0-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "eb6014e01f22e02e63b3de3d13b739a315b3b0d771bcbda210886e9376143dc1"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.0/lexis-0.4.0-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "a0a1bcabe4c476c87c8c89e4b968f4f051d85622e4c2584c383e27238516829e"
     end
   end
 
