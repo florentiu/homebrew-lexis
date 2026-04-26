@@ -12,12 +12,20 @@
 # — engine releases must propagate fast so users get `brew upgrade`
 # access the moment a tag lands).
 #
+# Distribution split between three repos:
+#   florentiu/lexis           PRIVATE  source code (this template lives here)
+#   florentiu/lexis-releases  PUBLIC   binary mirror — only place URLs below resolve
+#   florentiu/homebrew-lexis  PUBLIC   the rendered formula consumers tap into
+# The mirror repo holds no source — just the per-arch tarballs uploaded
+# by `release-lexis.yml`'s `github-release` job. That's why every URL
+# below points at `lexis-releases`, not `lexis`.
+#
 # Tokens (used verbatim below, sed-replaced by the workflow):
 #   0.2.0               — the engine version, e.g. 0.2.0
-#   f4dd5bd79787bee40d7850f6943394e59fc42ee95630aa027539b26e267143bd    — sha256 of the macOS arm64 tarball
-#   fe99ff344995b34ec95fb92e6a2195fa159c2f26d916cee69f49f4a7ea8fdff8     — sha256 of the macOS x86_64 tarball
-#   d06add63f18f338936be5a629ec46b257a72aea0ddee8251e07b303af9ffe91d     — sha256 of the Linux arm64 tarball
-#   d394caada0e0f1088f6d713b8f4e5cc29d4989bcab3d46f6dc91a754b8ef4304      — sha256 of the Linux x86_64 tarball
+#   f2eb1fe94043bfd249f048d1e66c3dd50ef1792359d291d100cd19a4cf460301    — sha256 of the macOS arm64 tarball
+#   cc3c0635671e6dd90346f20a3a819d6a1df6d3de442b2a942a0e42addba071bc     — sha256 of the macOS x86_64 tarball
+#   8619bace97c64328de4f091fdc8a5249df4a34ceb6f01f8a3773ea0e8b210e16     — sha256 of the Linux arm64 tarball
+#   d3a827b8d1344eec76d163a943b0cf21a0604ae58fe2b9578e98c7fb10ce97ec      — sha256 of the Linux x86_64 tarball
 #
 # End-user install (after first `lexis-v*` tag has been published):
 #
@@ -31,7 +39,11 @@
 # tags as the workflow re-stamps this file.
 class Lexis < Formula
   desc "Embedded search engine — Tantivy index + admin/search HTTP API"
-  homepage "https://github.com/florentiu/lexis"
+  # Source repo is private; this points at the public binary
+  # distribution mirror so users have a landing page that actually
+  # opens (the formula's `homepage` URL has to resolve or `brew
+  # audit` flags it on tap CI).
+  homepage "https://github.com/florentiu/lexis-releases"
   version "0.2.0"
   license :cannot_represent # source-available; see LICENSE
 
@@ -47,23 +59,23 @@ class Lexis < Formula
   # exactly that layout — keep it stable across releases.
   on_macos do
     on_arm do
-      url "https://github.com/florentiu/lexis/releases/download/lexis-v0.2.0/lexis-0.2.0-aarch64-apple-darwin.tar.gz"
-      sha256 "f4dd5bd79787bee40d7850f6943394e59fc42ee95630aa027539b26e267143bd"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.2.0/lexis-0.2.0-aarch64-apple-darwin.tar.gz"
+      sha256 "f2eb1fe94043bfd249f048d1e66c3dd50ef1792359d291d100cd19a4cf460301"
     end
     on_intel do
-      url "https://github.com/florentiu/lexis/releases/download/lexis-v0.2.0/lexis-0.2.0-x86_64-apple-darwin.tar.gz"
-      sha256 "fe99ff344995b34ec95fb92e6a2195fa159c2f26d916cee69f49f4a7ea8fdff8"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.2.0/lexis-0.2.0-x86_64-apple-darwin.tar.gz"
+      sha256 "cc3c0635671e6dd90346f20a3a819d6a1df6d3de442b2a942a0e42addba071bc"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/florentiu/lexis/releases/download/lexis-v0.2.0/lexis-0.2.0-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "d06add63f18f338936be5a629ec46b257a72aea0ddee8251e07b303af9ffe91d"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.2.0/lexis-0.2.0-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "8619bace97c64328de4f091fdc8a5249df4a34ceb6f01f8a3773ea0e8b210e16"
     end
     on_intel do
-      url "https://github.com/florentiu/lexis/releases/download/lexis-v0.2.0/lexis-0.2.0-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "d394caada0e0f1088f6d713b8f4e5cc29d4989bcab3d46f6dc91a754b8ef4304"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.2.0/lexis-0.2.0-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "d3a827b8d1344eec76d163a943b0cf21a0604ae58fe2b9578e98c7fb10ce97ec"
     end
   end
 
