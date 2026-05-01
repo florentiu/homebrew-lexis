@@ -23,11 +23,11 @@ require "json"
 # below points at `lexis-releases`, not `lexis`.
 #
 # Tokens (used verbatim below, sed-replaced by the workflow):
-#   0.4.4               — the engine version, e.g. 0.2.0
-#   05f3461dbec70e960d1f2b22671365f25c07d0f68c807190d07fb32394e1a312    — sha256 of the macOS arm64 tarball
-#   4cfecde126f61d5371ec6c22557a9519874d8b9febfe6ed5fa385e07b48c779c     — sha256 of the macOS x86_64 tarball
+#   0.4.5               — the engine version, e.g. 0.2.0
+#   2bc1ba7112cdb5a6ba92ecf14c4166227df1cead8ac0f30c5acc65bb81807b48    — sha256 of the macOS arm64 tarball
+#   76c29275c4244c0ad4f4f17b7cd4a55e59a14a609c4826e1b87adddb069b3b9d     — sha256 of the macOS x86_64 tarball
 #   __SHA_AARCH64_LINUX__     — sha256 of the Linux arm64 tarball
-#   9f946d3b5b1f6c7a42774cdd0c30b5957c62b34098cb18b475cb4881876b38ff      — sha256 of the Linux x86_64 tarball
+#   298b989c8b3b839a45ca265e25b2e636f29c0607a7716eca76c4903125b2f7a3      — sha256 of the Linux x86_64 tarball
 #
 # End-user install (after first `lexis-v*` tag has been published):
 #
@@ -46,11 +46,11 @@ class Lexis < Formula
   # opens (the formula's `homepage` URL has to resolve or `brew
   # audit` flags it on tap CI).
   homepage "https://github.com/florentiu/lexis-releases"
-  version "0.4.4"
+  version "0.4.5"
   license :cannot_represent # source-available; see LICENSE
 
   # Per-arch binaries published as GitHub Release assets on the same
-  # `lexis-v0.4.4` tag that built them. Keeping URL + sha256 inside
+  # `lexis-v0.4.5` tag that built them. Keeping URL + sha256 inside
   # the matching `on_macos`/`on_linux` blocks lets a single formula
   # serve every supported (os, arch) combination — Homebrew picks the
   # right block based on `Hardware::CPU.arch` at install time.
@@ -61,12 +61,12 @@ class Lexis < Formula
   # exactly that layout — keep it stable across releases.
   on_macos do
     on_arm do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.4/lexis-0.4.4-aarch64-apple-darwin.tar.gz"
-      sha256 "05f3461dbec70e960d1f2b22671365f25c07d0f68c807190d07fb32394e1a312"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.5/lexis-0.4.5-aarch64-apple-darwin.tar.gz"
+      sha256 "2bc1ba7112cdb5a6ba92ecf14c4166227df1cead8ac0f30c5acc65bb81807b48"
     end
     on_intel do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.4/lexis-0.4.4-x86_64-apple-darwin.tar.gz"
-      sha256 "4cfecde126f61d5371ec6c22557a9519874d8b9febfe6ed5fa385e07b48c779c"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.5/lexis-0.4.5-x86_64-apple-darwin.tar.gz"
+      sha256 "76c29275c4244c0ad4f4f17b7cd4a55e59a14a609c4826e1b87adddb069b3b9d"
     end
   end
 
@@ -74,18 +74,18 @@ class Lexis < Formula
     # Linux arm64 binary temporarily unavailable while we resolve
     # cross-compile issues with `ort-sys`'s download-binaries build
     # script. Linux arm64 users can pull the multi-arch Docker image
-    # (`docker pull ghcr.io/florentiu/lexis:0.4.4`) in the
+    # (`docker pull ghcr.io/florentiu/lexis:0.4.5`) in the
     # meantime — that build path runs natively on an arm64 runner
     # and isn't affected. Re-add the block once the standalone arm64
     # tarball is back on the release.
     #
     # on_arm do
-    #   url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.4/lexis-0.4.4-aarch64-unknown-linux-gnu.tar.gz"
+    #   url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.5/lexis-0.4.5-aarch64-unknown-linux-gnu.tar.gz"
     #   sha256 "__SHA_AARCH64_LINUX__"
     # end
     on_intel do
-      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.4/lexis-0.4.4-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "9f946d3b5b1f6c7a42774cdd0c30b5957c62b34098cb18b475cb4881876b38ff"
+      url "https://github.com/florentiu/lexis-releases/releases/download/lexis-v0.4.5/lexis-0.4.5-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "298b989c8b3b839a45ca265e25b2e636f29c0607a7716eca76c4903125b2f7a3"
     end
   end
 
